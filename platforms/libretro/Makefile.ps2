@@ -1,0 +1,64 @@
+# ====================================================================
+# PS2 Makefile for Geargrafx Libretro Core
+# Target: PlayStation 2 (Emotion Engine MIPS)
+# Toolchain: PS2SDK (mips64r5900el-ps2-elf-gcc)
+# ====================================================================
+
+TARGET_NAME := geargrafx_libretro_ps2
+
+# Check PS2SDK path
+ifeq ($(PS2SDK),)
+  $(error PS2SDK environment variable is not set. Please set up your ps2dev toolchain.)
+endif
+
+include $(PS2SDK)/samples/Makefile.pref
+
+# Compiler flags
+CC  := mips64r5900el-ps2-elf-gcc
+CXX := mips64r5900el-ps2-elf-g++
+AR  := mips64r5900el-ps2-elf-ar
+
+# Target Output
+TARGET := $(TARGET_NAME).a
+
+# Source Files Paths (Adjust relative paths depending on source layout)
+CORE_DIR := ../../src
+LIBRETRO_DIR := .
+
+# Include Directories
+INCDIRS := \
+	-I$(LIBRETRO_DIR) \
+	-I$(CORE_DIR) \
+	-I$(PS2SDK)/ee/include \
+	-I$(PS2SDK)/common/include
+
+# Compiler Flags
+DEFINES := -D__LIBRETRO__ -DABGR1555 -DGEARGRAFX_DISABLE_DEBUGGER -DNDEBUG
+EE_CFLAGS   += -O2 -G0 -Wall $(DEFINES) $(INCDIRS)
+EE_CXXFLAGS += -O2 -G0 -Wall -fno-rtti -fno-exceptions $(DEFINES) $(INCDIRS)
+
+# Source Discovery
+SOURCES_C   := $(wildcard $(LIBRETRO_DIR)/*.c)
+SOURCES_CXX := $(wildcard $(LIBRETRO_DIR)/*.cpp) \
+               $(wildcard $(CORE_DIR)/*.cpp) \
+               $(wildcard $(CORE_DIR)/**/*.cpp)
+
+# Object Files
+OBJS := $(SOURCES_C:.c=.o) $(SOURCES_CXX:.cpp=.o)
+
+# Rules
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(AR) rcs $@ $(OBJS)
+
+%.o: %.c
+	$(CC) $(EE_CFLAGS) -c $< -o $@
+
+%.o: %.cpp
+	$(CXX) $(EE_CXXFLAGS) -c $< -o $@
+
+clean:
+	rm -f $(OBJS) $(TARGET)
+
+.PHONY: all clean
