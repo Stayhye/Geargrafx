@@ -14,20 +14,25 @@ on:
 jobs:
   build-ps2:
     runs-on: ubuntu-latest
-    container:
-      image: ps2dev/ps2dev:latest
 
     steps:
+      # Step 1: Checkout repo ON THE HOST (Ubuntu has Git 2.18+ pre-installed)
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
+      # Step 2: Run compilation INSIDE the PS2Dev container mounted to host
       - name: Compile PS2 Core
-        run: |
-          cd platforms/libretro
-          make -f Makefile.ps2
+        uses: addnab/docker-run-action@v3
+        with:
+          image: ps2dev/ps2dev:latest
+          options: -v ${{ github.workspace }}:/src -w /src
+          run: |
+            cd platforms/libretro
+            make -f Makefile.ps2
 
+      # Step 3: Upload Artifact from host workspace
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
