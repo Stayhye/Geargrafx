@@ -6,53 +6,51 @@
 
 TARGET_NAME := geargrafx_libretro_ps2
 
-# Check PS2SDK path
 ifeq ($(PS2SDK),)
-  $(error PS2SDK environment variable is not set. Please set up your ps2dev toolchain.)
+  $(error PS2SDK environment variable is not set.)
 endif
 
 include $(PS2SDK)/samples/Makefile.pref
 
-# Compiler flags
 CC  := mips64r5900el-ps2-elf-gcc
 CXX := mips64r5900el-ps2-elf-g++
 AR  := mips64r5900el-ps2-elf-ar
 
-# Target Output
 TARGET := $(TARGET_NAME).a
 
-# Source Files Paths
-CORE_DIR := ../../src
-LIBRETRO_DIR := .
+CORE_DIR        := ../../src
+LIBRETRO_DIR    := .
 THIRD_PARTY_DIR := ../../third_party
 
-# Include Directories (added third_party and miniz paths)
+# Multi-path include search to cover all possible miniz locations
 INCDIRS := \
 	-I$(LIBRETRO_DIR) \
 	-I$(CORE_DIR) \
+	-I$(CORE_DIR)/miniz \
+	-I$(CORE_DIR)/common \
 	-I$(THIRD_PARTY_DIR) \
 	-I$(THIRD_PARTY_DIR)/miniz \
+	-I$(THIRD_PARTY_DIR)/miniz/src \
 	-I$(PS2SDK)/ee/include \
 	-I$(PS2SDK)/common/include
 
-# Compiler Flags
 DEFINES := -D__LIBRETRO__ -DABGR1555 -DGEARGRAFX_DISABLE_DEBUGGER -DNDEBUG
 EE_CFLAGS   += -O2 -G0 -Wall $(DEFINES) $(INCDIRS)
 EE_CXXFLAGS += -O2 -G0 -Wall -fno-rtti -fno-exceptions $(DEFINES) $(INCDIRS)
 
-# Source Discovery (including C sources for miniz)
+# Recursively discover C and C++ sources across core and third_party
 SOURCES_C   := $(wildcard $(LIBRETRO_DIR)/*.c) \
+               $(wildcard $(CORE_DIR)/*.c) \
+               $(wildcard $(CORE_DIR)/**/*.c) \
                $(wildcard $(THIRD_PARTY_DIR)/*.c) \
-               $(wildcard $(THIRD_PARTY_DIR)/miniz/*.c)
+               $(wildcard $(THIRD_PARTY_DIR)/**/*.c)
 
 SOURCES_CXX := $(wildcard $(LIBRETRO_DIR)/*.cpp) \
                $(wildcard $(CORE_DIR)/*.cpp) \
                $(wildcard $(CORE_DIR)/**/*.cpp)
 
-# Object Files
 OBJS := $(SOURCES_C:.c=.o) $(SOURCES_CXX:.cpp=.o)
 
-# Rules
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
