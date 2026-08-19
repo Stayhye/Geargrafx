@@ -18,19 +18,15 @@ AR  := mips64r5900el-ps2-elf-ar
 
 TARGET := $(TARGET_NAME).a
 
-CORE_DIR        := ../../src
-LIBRETRO_DIR    := .
-THIRD_PARTY_DIR := ../../third_party
+CORE_DIR         := ../../src
+LIBRETRO_DIR     := .
+SHARED_DEPS_DIR  := ../shared/dependencies
 
-# Multi-path include search to cover all possible miniz locations
+# Include Directories (points directly to platforms/shared/dependencies/miniz)
 INCDIRS := \
 	-I$(LIBRETRO_DIR) \
 	-I$(CORE_DIR) \
-	-I$(CORE_DIR)/miniz \
-	-I$(CORE_DIR)/common \
-	-I$(THIRD_PARTY_DIR) \
-	-I$(THIRD_PARTY_DIR)/miniz \
-	-I$(THIRD_PARTY_DIR)/miniz/src \
+	-I$(SHARED_DEPS_DIR)/miniz \
 	-I$(PS2SDK)/ee/include \
 	-I$(PS2SDK)/common/include
 
@@ -38,12 +34,9 @@ DEFINES := -D__LIBRETRO__ -DABGR1555 -DGEARGRAFX_DISABLE_DEBUGGER -DNDEBUG
 EE_CFLAGS   += -O2 -G0 -Wall $(DEFINES) $(INCDIRS)
 EE_CXXFLAGS += -O2 -G0 -Wall -fno-rtti -fno-exceptions $(DEFINES) $(INCDIRS)
 
-# Recursively discover C and C++ sources across core and third_party
+# Source Discovery
 SOURCES_C   := $(wildcard $(LIBRETRO_DIR)/*.c) \
-               $(wildcard $(CORE_DIR)/*.c) \
-               $(wildcard $(CORE_DIR)/**/*.c) \
-               $(wildcard $(THIRD_PARTY_DIR)/*.c) \
-               $(wildcard $(THIRD_PARTY_DIR)/**/*.c)
+               $(wildcard $(SHARED_DEPS_DIR)/miniz/*.c)
 
 SOURCES_CXX := $(wildcard $(LIBRETRO_DIR)/*.cpp) \
                $(wildcard $(CORE_DIR)/*.cpp) \
