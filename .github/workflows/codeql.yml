@@ -16,13 +16,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout on the host VM (Ubuntu has modern Git installed)
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      # Step 2: Run compilation inside Docker using direct docker run commands
       - name: Compile PS2 Core
         run: |
           docker run --rm \
@@ -37,7 +35,6 @@ jobs:
               make -f Makefile.ps2
             "
 
-      # Step 3: Upload the built artifact from the workspace
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
