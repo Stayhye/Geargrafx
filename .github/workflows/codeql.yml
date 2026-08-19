@@ -28,9 +28,16 @@ jobs:
             -w /src \
             ps2dev/ps2dev:latest \
             sh -c "
+              # Install make if missing
+              if ! command -v make &> /dev/null; then
+                apk add --no-cache make build-base 2>/dev/null || (apt-get update && apt-get install -y make)
+              fi
+
+              # Export PS2SDK environment
               export PS2DEV=/usr/local/ps2dev
               export PS2SDK=\$PS2DEV/ps2sdk
               export PATH=\$PATH:\$PS2DEV/bin:\$PS2DEV/ee/bin:\$PS2DEV/iop/bin:\$PS2SDK/bin
+
               cd platforms/libretro
               make -f Makefile.ps2
             "
