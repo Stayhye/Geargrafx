@@ -2,30 +2,49 @@ name: Build PS2 Libretro Core
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches:
+      - main
+      - master
   pull_request:
-    branches: [ "main", "master" ]
-  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+    branches:
+      - main
+      - master
+  workflow_dispatch:
 
 jobs:
   build-ps2:
     runs-on: ubuntu-latest
-    
-    # Run the build step directly inside the official PS2Dev environment container
-    container:
-      image: ps2dev/ps2dev:latest
 
     steps:
+      # 1. Checkout repository ON THE UBUNTU HOST (which has Git 2.18+ installed)
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
+      # 2. Run compilation inside Docker mounted to the host workspace
       - name: Compile PS2 Core
         run: |
-          cd platforms/libretro
-          make -f Makefile.ps2
+          docker run --rm \
+            -v ${{ github.workspace }}:/src \
+            -w /src \
+            ps2dev/ps2dev:latest \
+            sh -c "
+              # Ensure make is installed
+              if ! command -v make &> /dev/null; then
+                apk add --no-cache make build-base 2>/dev/null || (apt-get update && apt-get install -y make)
+              fi
 
+              # Export PS2Toolchain Environment
+              export PS2DEV=/usr/local/ps2dev
+              export PS2SDK=\$PS2DEV/ps2sdk
+              export PATH=\$PATH:\$PS2DEV/bin:\$PS2DEV/ee/bin:\$PS2DEV/iop/bin:\$PS2SDK/bin
+
+              cd platforms/libretro
+              make -f Makefile.ps2
+            "
+
+      # 3. Upload built core archive
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
