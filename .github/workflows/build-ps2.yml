@@ -21,6 +21,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 0
 
       # 2. Run compilation inside Docker mounted to the host workspace
       - name: Compile PS2 Core
@@ -30,12 +31,11 @@ jobs:
             -w /src \
             ps2dev/ps2dev:latest \
             sh -c "
-              # Ensure make is installed
-              if ! command -v make &> /dev/null; then
-                apk add --no-cache make build-base 2>/dev/null || (apt-get update && apt-get install -y make)
-              fi
+              # Find exact location of miniz.h
+              echo '=== Searching for miniz.h ==='
+              find . -name 'miniz.h'
 
-              # Export PS2Toolchain Environment
+              # Set up environment
               export PS2DEV=/usr/local/ps2dev
               export PS2SDK=\$PS2DEV/ps2sdk
               export PATH=\$PATH:\$PS2DEV/bin:\$PS2DEV/ee/bin:\$PS2DEV/iop/bin:\$PS2SDK/bin
