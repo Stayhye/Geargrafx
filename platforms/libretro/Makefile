@@ -56,7 +56,7 @@ ifeq ($(STATIC_LINKING), 1)
 endif
 
 # PS2
-else ifeq ($(platform), ps2)
+ifeq ($(platform), ps2)
    TARGET := $(TARGET_NAME)_libretro_$(platform).a
    CC = mips64r5900el-ps2-elf-gcc$(EXE_EXT)
    CXX = mips64r5900el-ps2-elf-g++$(EXE_EXT)
@@ -66,6 +66,7 @@ else ifeq ($(platform), ps2)
    CXXFLAGS += -G0
    STATIC_LINKING = 1
    VIDEO_RGB565 = 0
+endif
 
 # Unix
 ifneq (,$(findstring unix,$(platform)))
