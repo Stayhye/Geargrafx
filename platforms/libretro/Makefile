@@ -55,6 +55,18 @@ ifeq ($(STATIC_LINKING), 1)
 	EXT := a
 endif
 
+# PS2
+else ifeq ($(platform), ps2)
+   TARGET := $(TARGET_NAME)_libretro_$(platform).a
+   CC = mips64r5900el-ps2-elf-gcc$(EXE_EXT)
+   CXX = mips64r5900el-ps2-elf-g++$(EXE_EXT)
+   AR = mips64r5900el-ps2-elf-ar$(EXE_EXT)
+   PLATFORM_DEFINES := -DPS2 -DVIDEO_ABGR1555 -DIOAPI_NO_64
+   CFLAGS += -G0
+   CXXFLAGS += -G0
+   STATIC_LINKING = 1
+   VIDEO_RGB565 = 0
+
 # Unix
 ifneq (,$(findstring unix,$(platform)))
 	TARGET := $(TARGET_NAME)_libretro.so
