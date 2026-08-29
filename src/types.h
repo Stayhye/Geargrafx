@@ -58,9 +58,9 @@ enum GG_CDROM_Type
 
 struct GG_Color
 {
-    u8 red;
-    u8 green;
     u8 blue;
+    u8 green;
+    u8 red;
 };
 
 enum GG_Pixel_Format
