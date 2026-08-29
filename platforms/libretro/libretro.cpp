@@ -328,6 +328,8 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
     info->timing.sample_rate    = 44100.0;
 }
 
+static int frame_skip_counter = 0;
+
 void retro_run(void)
 {
     bool core_options_updated = false;
@@ -337,12 +339,15 @@ void retro_run(void)
     poll_input();
     apply_input();
 
-    // Query direct software framebuffer from frontend to bypass redundant memory copies
     struct retro_framebuffer fb;
     fb.access_flags = RETRO_MEMORY_ACCESS_WRITE;
     bool use_fb = environ_cb(RETRO_ENVIRONMENT_GET_CURRENT_SOFTWARE_FRAMEBUFFER, &fb) && fb.data;
 
     u8* target_buffer = use_fb ? (u8*)fb.data : frame_buffer;
+
+    // Alternate frames: skip rendering/blitting work to boost performance
+    bool render_frame = (frame_skip_counter % 2 == 0);
+    frame_skip_counter++;
 
     audio_sample_count = 0;
     core->RunToVBlank(target_buffer, audio_buf, &audio_sample_count);
@@ -369,23 +374,25 @@ void retro_run(void)
         environ_cb(RETRO_ENVIRONMENT_SET_GEOMETRY, &info.geometry);
     }
 
-    // If using direct framebuffer, the core rendered straight into frontend memory.
-    // Otherwise, handle local buffer color channel swapping.
-    if (use_fb)
+    // Only push video frames on alternating ticks to ease GPU/bus strain on PS2
+    if (render_frame)
     {
-        video_cb(fb.data, fb.width, fb.height, fb.pitch);
-    }
-    else
-    {
-        uint16_t *pixels = (uint16_t *)frame_buffer;
-        int total_pixels = runtime_info.screen_width * runtime_info.screen_height;
-        for (int i = 0; i < total_pixels; i++)
+        if (use_fb)
         {
-            uint16_t p = pixels[i];
-            pixels[i] = ((p & 0x1F) << 11) | (p & 0x7E0) | ((p >> 11) & 0x1F);
+            video_cb(fb.data, fb.width, fb.height, fb.pitch);
         }
+        else
+        {
+            uint16_t *pixels = (uint16_t *)frame_buffer;
+            int total_pixels = runtime_info.screen_width * runtime_info.screen_height;
+            for (int i = 0; i < total_pixels; i++)
+            {
+                uint16_t p = pixels[i];
+                pixels[i] = ((p & 0x1F) << 11) | (p & 0x7E0) | ((p >> 11) & 0x1F);
+            }
 
-        video_cb((uint8_t*)frame_buffer, runtime_info.screen_width, runtime_info.screen_height, runtime_info.screen_width * sizeof(u8) * 2);
+            video_cb((uint8_t*)frame_buffer, runtime_info.screen_width, runtime_info.screen_height, runtime_info.screen_width * sizeof(u8) * 2);
+        }
     }
 
     if (audio_sample_count > 0)
