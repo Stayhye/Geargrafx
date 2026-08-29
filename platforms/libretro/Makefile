@@ -56,14 +56,16 @@ ifeq ($(STATIC_LINKING), 1)
 endif
 
 # PS2
-ifeq ($(platform), ps2)
-   TARGET := $(TARGET_NAME)_libretro_$(platform).a
+else ifeq ($(platform), ps2)
+	EXT=a
+   TARGET := $(TARGET_NAME)_libretro_$(platform).$(EXT)
    CC = mips64r5900el-ps2-elf-gcc$(EXE_EXT)
-   CXX = mips64r5900el-ps2-elf-g++$(EXE_EXT)
    AR = mips64r5900el-ps2-elf-ar$(EXE_EXT)
+   CFLAGS += -DHAVE_STRLWR -DPS2 -G0 -ffast-math -DABGR1555 -DNO_FAST_SQRT -DMEMORY_LOW -DHAVE_LOW_MEMORY
+   CXXFLAGS += -G0 -O3 -fno-strict-aliasing -fomit-frame-pointer -ffast-math -DPS2 -DABGR1555
+   HAVE_LOW_MEMORY = 1
+   HAVE_THREADS = 0
    PLATFORM_DEFINES := -DPS2 -DVIDEO_ABGR1555 -DIOAPI_NO_64
-   CFLAGS += -G0
-   CXXFLAGS += -G0
    STATIC_LINKING = 1
    VIDEO_RGB565 = 0
 endif
