@@ -337,8 +337,15 @@ void retro_run(void)
     poll_input();
     apply_input();
 
+    // Query direct software framebuffer from frontend to bypass redundant memory copies
+    struct retro_framebuffer fb;
+    fb.access_flags = RETRO_MEMORY_ACCESS_WRITE;
+    bool use_fb = environ_cb(RETRO_ENVIRONMENT_GET_CURRENT_SOFTWARE_FRAMEBUFFER, &fb) && fb.data;
+
+    u8* target_buffer = use_fb ? (u8*)fb.data : frame_buffer;
+
     audio_sample_count = 0;
-    core->RunToVBlank(frame_buffer, audio_buf, &audio_sample_count);
+    core->RunToVBlank(target_buffer, audio_buf, &audio_sample_count);
 
     core->GetRuntimeInfo(runtime_info);
 
@@ -362,21 +369,28 @@ void retro_run(void)
         environ_cb(RETRO_ENVIRONMENT_SET_GEOMETRY, &info.geometry);
     }
 
-   // Swap Red and Blue channels for RGB565 on PS2
-    uint16_t *pixels = (uint16_t *)frame_buffer;
-    int total_pixels = runtime_info.screen_width * runtime_info.screen_height;
-    for (int i = 0; i < total_pixels; i++)
+    // If using direct framebuffer, the core rendered straight into frontend memory.
+    // Otherwise, handle local buffer color channel swapping.
+    if (use_fb)
     {
-        uint16_t p = pixels[i];
-        pixels[i] = ((p & 0x1F) << 11) | (p & 0x7E0) | ((p >> 11) & 0x1F);
+        video_cb(fb.data, fb.width, fb.height, fb.pitch);
     }
+    else
+    {
+        uint16_t *pixels = (uint16_t *)frame_buffer;
+        int total_pixels = runtime_info.screen_width * runtime_info.screen_height;
+        for (int i = 0; i < total_pixels; i++)
+        {
+            uint16_t p = pixels[i];
+            pixels[i] = ((p & 0x1F) << 11) | (p & 0x7E0) | ((p >> 11) & 0x1F);
+        }
 
-    video_cb((uint8_t*)frame_buffer, runtime_info.screen_width, runtime_info.screen_height, runtime_info.screen_width * sizeof(u8) * 2);
+        video_cb((uint8_t*)frame_buffer, runtime_info.screen_width, runtime_info.screen_height, runtime_info.screen_width * sizeof(u8) * 2);
+    }
 
     if (audio_sample_count > 0)
         audio_batch_cb(audio_buf, audio_sample_count / 2);
 }
-
 static bool load_hucard(const struct retro_game_info* info, const char* path)
 {
     if (IsValidPointer(info->data) && (info->size > 0))
