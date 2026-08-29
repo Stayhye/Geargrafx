@@ -62,7 +62,7 @@ ifeq ($(platform), ps2)
     CXX = mips64r5900el-ps2-elf-g++$(EXE_EXT)
     AR = mips64r5900el-ps2-elf-ar$(EXE_EXT)
     
-    COMMON_FLAGS := -DPS2 -DABGR1555 -DVIDEO_ABGR1555 -DHAVE_STRLWR -DNO_FAST_SQRT -DMEMORY_LOW -DHAVE_LOW_MEMORY -DIOAPI_NO_64 -G0 -O3 -fomit-frame-pointer -ffast-math -fno-strict-aliasing
+    COMMON_FLAGS := -DPS2 -DABGR1555 -DVIDEO_ABGR1555 -DHAVE_STRLWR -DNO_FAST_SQRT -DMEMORY_LOW -DHAVE_LOW_MEMORY -DIOAPI_NO_64 -DNDEBUG -G0 -O3 -fomit-frame-pointer -ffast-math -fno-strict-aliasing
     
     CFLAGS += $(COMMON_FLAGS)
     CXXFLAGS += $(COMMON_FLAGS) -fno-exceptions -fno-rtti
