@@ -362,6 +362,15 @@ void retro_run(void)
         environ_cb(RETRO_ENVIRONMENT_SET_GEOMETRY, &info.geometry);
     }
 
+   // Swap Red and Blue channels for RGB565 on PS2
+    uint16_t *pixels = (uint16_t *)frame_buffer;
+    int total_pixels = runtime_info.screen_width * runtime_info.screen_height;
+    for (int i = 0; i < total_pixels; i++)
+    {
+        uint16_t p = pixels[i];
+        pixels[i] = ((p & 0x1F) << 11) | (p & 0x7E0) | ((p >> 11) & 0x1F);
+    }
+
     video_cb((uint8_t*)frame_buffer, runtime_info.screen_width, runtime_info.screen_height, runtime_info.screen_width * sizeof(u8) * 2);
 
     if (audio_sample_count > 0)
@@ -444,10 +453,10 @@ bool retro_load_game(const struct retro_game_info *info)
         }
     }
 
-    enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_XRGB8888;
+    enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_RGB565;
     if (!environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt))
     {
-        log_cb(RETRO_LOG_ERROR, "XRGB8888 is not supported.\n");
+        log_cb(RETRO_LOG_ERROR, "RGB565 is not supported.\n");
         return false;
     }
 
