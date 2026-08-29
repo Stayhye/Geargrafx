@@ -32,7 +32,8 @@ static bool ensure_buffer(void);
 
 void runahead_init(void)
 {
-    runahead_audio = new s16[GG_AUDIO_BUFFER_SIZE];
+    // Skip allocation entirely on PS2 to save memory and prevent state-cloning overhead
+    runahead_audio = NULL;
     runahead_buffer = NULL;
     runahead_buffer_size = 0;
 }
@@ -46,81 +47,19 @@ void runahead_destroy(void)
 
 int runahead_get_frames(void)
 {
-    int frames = config_emulator.runahead;
-
-    if ((frames <= 0) || config_emulator.ffwd)
-        return 0;
-
-#if defined(GG_ENABLE_PHYSICAL_CDROM)
-    // A physical CD-ROM drive cannot be rolled back through save states.
-    if (emu_get_core()->GetMedia()->IsPhysicalCdRom())
-        return 0;
-#endif
-
-    return frames;
+    // Force run-ahead off on the PS2 to protect framerate performance
+    return 0;
 }
 
 void runahead_run(int frames, u8* frame_buffer, s16* sample_buffer, int* sample_count)
 {
+    // Bypass speculative execution and execute a single standard frame
     GeargrafxCore* core = emu_get_core();
-
-    // Run the authoritative frame, keeping its audio while the real state advances.
     core->RunToVBlank(frame_buffer, sample_buffer, sample_count);
-
-    // Allocate the reusable snapshot buffer on first use.
-    if (!IsValidPointer(runahead_buffer) && !ensure_buffer())
-        return;
-
-    size_t saved_size = runahead_buffer_size;
-    if (!core->SaveState(runahead_buffer, saved_size, false))
-    {
-        // The state outgrew the buffer (e.g. MB128 just connected). Grow it once
-        // and skip speculation this frame; later frames reuse the larger buffer.
-        ensure_buffer();
-        return;
-    }
-
-    // Run the speculative frames with the same input, discarding their audio
-    // and keeping only the last rendered frame.
-    for (int i = 0; i < frames; i++)
-    {
-        int discarded_samples = 0;
-        bool render = (i == (frames - 1));
-        core->RunToVBlank(frame_buffer, runahead_audio, &discarded_samples, NULL, render);
-    }
-
-    // Roll back to the authoritative frame. If restoring ever fails, the
-    // authoritative state is unrecoverable, so keep the (valid) speculative
-    // state as the new timeline and disable run-ahead. Emulation continues
-    // without interruption.
-    if (!core->LoadState(runahead_buffer, saved_size))
-    {
-        Log("Run-ahead: failed to restore state, disabling run-ahead");
-        config_emulator.runahead = 0;
-    }
 }
 
 static bool ensure_buffer(void)
 {
-    size_t needed = 0;
-    if (!emu_get_core()->SaveState(NULL, needed, false) || (needed == 0))
-        return false;
-
-    // The buffer is allocated once and only ever grows, so it is reused every
-    // frame without per-frame allocations.
-    if (IsValidPointer(runahead_buffer) && (runahead_buffer_size >= needed))
-        return true;
-
-    u8* new_buffer = new (std::nothrow) u8[needed];
-    if (!IsValidPointer(new_buffer))
-    {
-        Log("Run-ahead: failed to allocate %zu bytes, disabling run-ahead", needed);
-        config_emulator.runahead = 0;
-        return false;
-    }
-
-    SafeDeleteArray(runahead_buffer);
-    runahead_buffer = new_buffer;
-    runahead_buffer_size = needed;
-    return true;
+    // Bypass save-state buffer allocations entirely on the PS2
+    return false;
 }
